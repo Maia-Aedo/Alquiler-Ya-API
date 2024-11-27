@@ -1,14 +1,15 @@
 const { Router } = require("express");
-const { createPost, getPosts, updatePost, deletePost } = require("../controllers/posts-controller");
+const methods = require('../controllers/posts-controller.js');
 const { authenticateJWT } = require("../middlewares/jwt");
+const { verifyRole } = require('../middlewares/userRoles.js');
 
 const router = Router();
 
 // Rutas
-router.get("/", getPosts); // Acceso público
+router.get("/posts/obtener", getPosts); // Acceso público
 // Usuarios autenticados
-router.post("/", authenticateJWT, createPost); 
-router.put("/:id", authenticateJWT, updatePost);
-router.delete("/:id", authenticateJWT, deletePost); 
+router.post("/posts/crear-publicacion", authenticateJWT, verifyRole('admin' | 'propietario'), methods.createPost); 
+router.put("/posts/editar/:id", authenticateJWT, verifyRole('admin', 'propietario'), methods.updatePost);
+router.delete("/posts/:id", authenticateJWT, verifyRole('admin', 'propietario'), methods. deletePost); 
 
 module.exports = router;
