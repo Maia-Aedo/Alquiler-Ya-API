@@ -12,14 +12,34 @@ const bcrypt = require("bcrypt");
 const { generateJwt } = require("../middlewares/jwt");
 
 const registerAdmin = async (req = request, res = response) => {
-  const usuario = { ...req.body };
+  const user = { ...req.body };
   const salt = 12;
-  if (!usuario) res.status(401).json({ ok: false, msg: "No autorizado" });
+  if (!user) res.status(401).json({ ok: false, msg: "No autorizado" });
 
   try {
       // Cambiamos contrasena por la nueva hasheada
-      usuario.contrasena = await bcrypt.hash(usuario.contrasena, salt);
-      usuario.rol = 'admin'
+      user.password = await bcrypt.hash(user.password, salt);
+      user.rol = 'admin'
+      const connection = await getConnection();
+      // Pasamos la query donde insertamos el nuevo user en la tabla
+      const [result] = await connection.execute('INSERT * INTO usuarios SET usuario = ?', [usuario.nombre]);
+      if (result.length === 0) return null;
+      res.status(201).json({ ok: true, result, msg: "Admin creado" });
+  } catch (e) {
+      console.log(e);
+      res.status(500).json({ ok: false, e, msg: "Error en servidor" });
+  }
+};
+
+const registerOwner = async (req = request, res = response) => {
+  const user = { ...req.body };
+  const salt = 12;
+  if (!user) res.status(401).json({ ok: false, msg: "No autorizado" });
+
+  try {
+      // Cambiamos contrasena por la nueva hasheada
+      user.password = await bcrypt.hash(user.password, salt);
+      user.rol = 'propietario'
       const connection = await getConnection();
       // Pasamos la query donde insertamos el nuevo user en la tabla
       const [result] = await connection.execute('INSERT * INTO usuarios SET usuario = ?', [usuario.nombre]);
@@ -39,6 +59,7 @@ const register = async (req = request, res = response) => {
 
   try {
     user.password = await bcrypt.hash(user.password, salt);
+    user.rol = 'usuario'
     const connection = await getConnection();
     const result = await connection.query("INSERT INTO usuarios SET ?", user);
     res.status(201).json({ ok: true, result, msg: "approved" });
@@ -56,7 +77,7 @@ const login = async (req = request, res = response) => {
     const connection = await getConnection();
     const [result] = await connection.query(
       "SELECT * FROM usuarios WHERE usuario = ?",
-      user.username
+      user.usuario
     );
 
     if(!result[0]) res.status(404).json({ ok: false, msg: "Usuario no encontrado" });
@@ -99,4 +120,4 @@ const getUser = async (req = request, res = response) => {
   }
 };
 
-module.exports = { register, registerAdmin, login, getUser };
+module.exports = { register, registerAdmin, registerOwner, login, getUser };
