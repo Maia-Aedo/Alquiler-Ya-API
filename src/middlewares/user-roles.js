@@ -1,9 +1,10 @@
 // Verificamos el rol del usuario
-// Fn recibe role - dependiendo de rol, permite acceso a determinadas rutas
-const verifyRole = (rol) => {
+// Fn recibe rol - dependiendo de rol, permite acceso a determinadas rutas
+const verifyRole = (roles) => {
     return (req, res, next) => {
-        if (req.user.rol !== rol) {
-            return res.status(403).json({ ok:false, msg:"Sin permisos" });
+        const { rol } = req.usuario; // Obtenemos rol del user desde token
+        if (!roles.includes(rol)) {
+            return res.status(403).json({ ok: false, msg: "Acceso denegado" });
         }
         next();
     };

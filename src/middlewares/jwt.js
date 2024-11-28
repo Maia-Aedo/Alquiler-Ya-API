@@ -5,7 +5,7 @@
 
 const jwt = require("jsonwebtoken");
 const config = require("../config");
-const { response, request, next } = require("express");
+const { response, request } = require("express");
 
 const authenticateJWT = (req = request, res = response, next = next) => {
   const authHeader = req.headers["authorization"];
@@ -16,7 +16,7 @@ const authenticateJWT = (req = request, res = response, next = next) => {
   jwt.verify(token, config.secretKey, (err, user) => {
     if (err) return res.sendStatus(403);
     // Guardamos el usuario en el request para usar en rutas protegidas
-    req.user = user; 
+    req.usuario = user; 
     next();
   });
 };
@@ -24,7 +24,7 @@ const authenticateJWT = (req = request, res = response, next = next) => {
 const generateJwt = async (user) => {
     const payload = {
     sub: user.id,
-    username: user.username,
+    username: user.nombreUsuario,
     name: user.nombre,
   };
 
