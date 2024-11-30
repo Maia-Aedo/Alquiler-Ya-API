@@ -1,25 +1,22 @@
 const { request, response } = require("express");
 const { getConnection } = require("../models/database");
 
-// Crear publicación (admin y propietario)
+/**
+ * @description Crear una publicación (Admin y Propietario)
+ */
 const createPost = async (req = request, res = response) => {
   const { titulo, descripcion, precio, direccion } = req.body;
-  const { id: usuario_id, rol } = req.usuario; // Usuario autenticado
+  const { id: propietarioId } = req.usuario; // Usuario autenticado
 
   if (!titulo || !descripcion || !precio || !direccion) {
     return res.status(400).json({ ok: false, msg: "Todos los campos son obligatorios" });
   }
 
   try {
-    // Validar rol
-    if (rol !== "admin" && rol !== "propietario") {
-      return res.status(403).json({ ok: false, msg: "No autorizado" });
-    }
-
     const connection = await getConnection();
     const [result] = await connection.query(
       "INSERT INTO Propiedad (titulo, descripcion, precio, direccion, propietario_id) VALUES (?, ?, ?, ?, ?)",
-      [titulo, descripcion, precio, direccion, usuario_id]
+      [titulo, descripcion, precio, direccion, propietarioId]
     );
 
     res.status(201).json({ ok: true, msg: "Publicación creada", id: result.insertId });
@@ -29,11 +26,15 @@ const createPost = async (req = request, res = response) => {
   }
 };
 
-// Obtener todas las publicaciones (todos los roles)
+
+/**
+ * @description Obtener todas las publicaciones (Todos los roles)
+ */
 const getPosts = async (req = request, res = response) => {
   try {
     const connection = await getConnection();
     const [result] = await connection.query("SELECT * FROM Propiedad");
+
     res.status(200).json({ ok: true, publicaciones: result });
   } catch (error) {
     console.error(error);
@@ -41,7 +42,9 @@ const getPosts = async (req = request, res = response) => {
   }
 };
 
-// Actualizar publicación (admin y propietario)
+/**
+ * @description Actualizar una publicación (Admin y Propietario)
+ */
 const updatePost = async (req = request, res = response) => {
   const { id } = req.params;
   const { titulo, descripcion, precio, direccion } = req.body;
@@ -49,7 +52,6 @@ const updatePost = async (req = request, res = response) => {
 
   try {
     const connection = await getConnection();
-    // Verificar que la publicación existe y pertenece al usuario
     const [publicacion] = await connection.query(
       "SELECT * FROM Propiedad WHERE id = ?",
       [id]
@@ -59,8 +61,10 @@ const updatePost = async (req = request, res = response) => {
       return res.status(404).json({ ok: false, msg: "Publicación no encontrada" });
     }
 
-    if (rol !== "admin" && publicacion[0].propietario_id !== usuarioId) {
-      return res.status(403).json({ ok: false, msg: "No autorizado" });
+    const esPropietario = publicacion[0].propietario_id === usuarioId;
+
+    if (!["admin", "propietario"].includes(rol) || (rol === "propietario" && !esPropietario)) {
+      return res.status(403).json({ ok: false, msg: "No autorizado para actualizar esta publicación" });
     }
 
     await connection.query(
@@ -75,7 +79,9 @@ const updatePost = async (req = request, res = response) => {
   }
 };
 
-// Eliminar publicación (admin y propietario)
+/**
+ * @description Eliminar una publicación (Admin y Propietario)
+ */
 const deletePost = async (req = request, res = response) => {
   const { id } = req.params;
   const { id: usuarioId, rol } = req.usuario;
@@ -91,8 +97,10 @@ const deletePost = async (req = request, res = response) => {
       return res.status(404).json({ ok: false, msg: "Publicación no encontrada" });
     }
 
-    if (rol !== "admin" && publicacion[0].propietario_id !== usuarioId) {
-      return res.status(403).json({ ok: false, msg: "No autorizado" });
+    const esPropietario = publicacion[0].propietario_id === usuarioId;
+
+    if (!["admin", "propietario"].includes(rol) || (rol === "propietario" && !esPropietario)) {
+      return res.status(403).json({ ok: false, msg: "No autorizado para eliminar esta publicación" });
     }
 
     await connection.query("DELETE FROM Propiedad WHERE id = ?", [id]);
@@ -104,9 +112,17 @@ const deletePost = async (req = request, res = response) => {
   }
 };
 
-const approvePost = async (req, res) => {
+/**
+ * @description Aprobar una publicación (Admin)
+ */
+const approvePost = async (req = request, res = response) => {
   const { id } = req.params;
-  
+  const { rol } = req.usuario;
+
+  if (rol !== "admin") {
+    return res.status(403).json({ ok: false, msg: "No autorizado para aprobar publicaciones" });
+  }
+
   try {
     const connection = await getConnection();
     const [result] = await connection.query(
@@ -119,9 +135,9 @@ const approvePost = async (req, res) => {
     }
 
     res.status(200).json({ ok: true, msg: "Publicación aprobada exitosamente" });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ ok: false, e, msg: "Error en el servidor" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ ok: false, msg: "Error del servidor" });
   }
 };
 

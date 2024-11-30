@@ -1,6 +1,7 @@
 const express = require('express');
-const morgan = require('mmorgan');
+const morgan = require('morgan');
 var cors = require('cors');
+const config = require('./config.js');
 
 // Express
 const app = express();
@@ -8,7 +9,7 @@ const app = express();
 app.use(cors());
 
 // Settings
-app.set('port', 3000);
+app.set('port', config.port);
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 
