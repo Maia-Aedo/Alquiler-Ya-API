@@ -6,7 +6,7 @@ config();
 //! Server connection config
 module.exports = {
     host: process.env.db_host,
-    port: process.env.db_port,
+    port: process.env.db_port || 8080,
     database: process.env.db_database,
     user: process.env.db_user,
     password: process.env.db_password,
