@@ -28,6 +28,7 @@ const handleDisconnect = async () => {
             database: config.database,
             user: config.user,
             password: config.password,
+            url: config.url,
         });
         console.log('Reconexión exitosa con la base de datos');
     } catch (err) {
