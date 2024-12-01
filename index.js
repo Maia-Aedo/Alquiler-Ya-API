@@ -1,8 +1,10 @@
 const app = require('./src/app');
 
 const main = () => {
-    app.listen(app.get('port'),'0.0.0.0');
-    console.log(`Servidor en puerto ${app.get('port')}`);
+    const port = app.get('port');
+    app.listen(port, '0.0.0.0', () => {
+        console.log(`Servidor en puerto ${port}`);
+    });
 };
 
 main();

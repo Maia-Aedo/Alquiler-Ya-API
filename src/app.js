@@ -9,7 +9,7 @@ const app = express();
 app.use(cors());
 
 // Settings
-app.set('port', config.port);
+app.set('port', process.env.PORT || 3000);
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 
