@@ -3,7 +3,6 @@
 const verifyRole = (allowedRoles) => {
     return (req, res, next) => {
         const { rol } = req.usuario; // Usuario autenticado debe incluir el rol en el payload del JWT
-
         if (!allowedRoles.includes(rol)) {
             return res.status(403).json({
                 ok: false,

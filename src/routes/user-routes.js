@@ -2,7 +2,6 @@ const { Router } = require('express');// Router para usar metodos POST-PUT-GET-D
 const methods = require('../controllers/user-controller.js'); // Métodos de controlador
 const { authenticateJWT } = require('../middlewares/jwt.js'); // Autenticación
 const { verifyRole } = require('../middlewares/user-roles.js'); // Roles de usuario
-const { validateRegister } = require("../middlewares/validation");
 
 const router = Router();
 
@@ -14,7 +13,7 @@ router.post("/auth/registrar-cliente", authenticateJWT, verifyRole(["cliente"]),
 // Registrar admin (solo usuarios con rol de "admin")
 router.post("/auth/registrar-admin", authenticateJWT, verifyRole(["admin"]), methods.register);
 // Registrar propietario (solo usuarios con rol de "propietario")
-router.post("/auth/registrar-propietario", authenticateJWT, verifyRole(["admin", "propietario"]), methods.registerOwner);
+router.post("/auth/registrar-propietario", authenticateJWT, verifyRole(["propietario"]), methods.registerOwner);
 // Login de usuarios (disponible para todos)
 router.post("/auth/login", methods.login);
 // Obtener usuario por ID (autenticado)
