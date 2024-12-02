@@ -21,4 +21,8 @@ router.get("/users/:id", authenticateJWT, verifyRole(["admin", "propietario", "c
 /* Colocamos el middleware para evitar que cualquiera que consulte el endpoint vea el token
 que solo se puede conseguir mediante autenticación en login */
 
+router.get('/test', (req, res) => {
+    res.send('API funcionando correctamente');
+});  
+
 module.exports = router;
