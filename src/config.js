@@ -5,11 +5,11 @@ config();
 
 //! Server connection config
 module.exports = {
-    host: process.env.db_host,
-    port: process.env.db_port || 8080,
-    database: process.env.db_database,
-    user: process.env.db_user,
-    password: process.env.db_password,
-    url: process.env.db_url,
+    host: process.env.MYSQL_ADDON_HOST,
+    port: process.env.PORT,
+    database: process.MYSQL_ADDON_DB,
+    user: process.env.MYSQL_ADDON_USER,
+    password: process.env.MYSQL_ADDON_PASSWORD,
+    url: process.env.MYSQL_ADDON_URI,
     secretKey: process.env.secret_seed,
 }
