@@ -24,7 +24,7 @@ const handleDisconnect = async () => {
     try {
         connection = await mysql.createConnection({
             host: config.host,
-            port: config.port || 3306,
+            port: config.port,
             database: config.database,
             user: config.user,
             password: config.password,
