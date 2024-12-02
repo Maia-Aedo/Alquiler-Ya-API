@@ -26,7 +26,7 @@ const generateJwt = async (user) => {
     const payload = {
     sub: user.id,
     username: user.usuario,
-    name: user.nombre,
+    rol: user.rol,
   };
 
   const options = {
