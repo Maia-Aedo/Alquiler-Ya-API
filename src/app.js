@@ -19,6 +19,9 @@ app.use(express.json());
 app.use(morgan('dev'));
 
 // Rutas
+app.get('/', (req, res) => {
+    res.send('Servidor funcionando correctamente');
+});
 app.use('/users', userRoutes);
 app.use('/posts', postRoutes);
 
