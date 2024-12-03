@@ -2,11 +2,8 @@ const express = require('express');
 const morgan = require('morgan');
 var cors = require('cors');
 const config = require('./config.js');
-
 const userRoutes = require('./routes/user-routes.js');
 const postRoutes = require('./routes/posts-routes.js');
-app.use(userRoutes);
-app.use(postRoutes);
 
 // Express
 const app = express();
@@ -20,5 +17,9 @@ app.use(express.json());
 
 // Middlewares
 app.use(morgan('dev'));
+
+// Rutas
+app.use('/users', userRoutes);
+app.use('/posts', postRoutes);
 
 module.exports = app;

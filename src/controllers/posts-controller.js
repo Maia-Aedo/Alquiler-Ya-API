@@ -1,5 +1,5 @@
 const { request, response } = require("express");
-const { getConnection } = require("../models/database");
+const { getConnection } = require("../database/database.js");
 
 /**
  * @description Crear una publicación (Admin y Propietario)

@@ -4,48 +4,48 @@
  */
 
 const mysql = require('mysql2/promise');
-const config = require('src/config.js');
+const config = require('../config.js');
 
-//! Generamos conexión
-const connection = mysql.createConnection({
-    host: config.host,
-    port: config.port,
-    database: config.database,
-    user: config.user,
-    password: config.password,
-});
+let connection;
 
-const getConnection = () => {
-    console.log('Conecte con base de datos');
-    return connection;
-};
-
-const handleDisconnect = async () => {
+//! Generamos conexión.
+const initConnection = async () => {
     try {
         connection = await mysql.createConnection({
             host: config.host,
-            port: config.port,
+            port: config.db_port,
             database: config.database,
             user: config.user,
             password: config.password,
-            url: config.url,
         });
-        console.log('Reconexión exitosa con la base de datos');
+        console.log('Conexión exitosa a la base de datos');
     } catch (err) {
-        console.error('Error al reconectar a la base de datos:', err.message);
-        setTimeout(handleDisconnect, 5000); // Reintenta después de 5 segundos
+        console.error('Error al conectar con la base de datos:', err.message);
+        setTimeout(handleDisconnect, 5000); // Reintenta conexión después de 5 segundos.
     }
 };
 
-connection.on('error', (err) => {
-    if (err.code === 'PROTOCOL_CONNECTION_LOST') {
-        console.error('Conexión perdida, intentando reconectar...');
-        handleDisconnect();
-    } else {
-        throw err;
+//  * Reestablece la conexión en caso de desconectarse
+const handleDisconnect = async () => {
+    try {
+        console.log('Intentando reconectar a la base de datos...');
+        await initConnection();
+    } catch (err) {
+        console.error('Error al reconectar a la base de datos:', err.message);
+        setTimeout(handleDisconnect, 5000); // Reintentar reconexión.
     }
-});
+};
 
+//  * Retorna conexión
+const getConnection = () => {
+    if (!connection) {
+        throw new Error('La conexión no está inicializada. Llama a initConnection primero.');
+    }
+    return connection;
+};
+
+// Cuando carga el modulo inicializa conexion
+initConnection();
 
 //! Obtenemos conexión y retornamos
-module.exports = { getConnection, handleDisconnect }
+module.exports = { getConnection, handleDisconnect };
