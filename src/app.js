@@ -15,6 +15,7 @@ const app = express();
 // ! Rutas
 const users = require('./routes/user-routes.js');
 const files = require('./routes/file-routes.js')
+const posts = require('./routes/posts-routes.js')
 
 const fileUpload = require('express-fileupload');
 
@@ -35,5 +36,6 @@ app.use(fileUpload({
 // ! Direcciones de rutas
 app.use(users)
 app.use(files)
+app.use(posts)
 
 module.exports = app;
