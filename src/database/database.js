@@ -4,47 +4,63 @@
  */
 
 const mysql = require('mysql2/promise');
-const config = require('src/config.js');
+const config = require('./../config.js');
+
 
 //! Generamos conexión
-const connection = mysql.createConnection({
-    host: config.host,
-    port: config.port,
-    database: config.database,
-    user: config.user,
-    password: config.password,
-});
+let connection;
 
-const getConnection = () => {
-    console.log('Conecte con base de datos');
-    return connection;
-};
-
-const handleDisconnect = async () => {
+const connectToDatabase = async () => {
     try {
-        connection = await mysql.createConnection({
+        const conn = await mysql.createConnection({
             host: config.host,
-            port: config.port || 3306,
+            port: config.port,
             database: config.database,
             user: config.user,
             password: config.password,
+            connectTimeout: 10000
         });
-        console.log('Reconexión exitosa con la base de datos');
+
+        console.log('✅ Conexión exitosa a la base de datos');
+        connection = conn;
+
+        // Reconexión automática si se pierde la conexión
+        connection.on('error', (err) => {
+            if (err.code === 'PROTOCOL_CONNECTION_LOST') {
+                console.warn('🔌 Conexión perdida. Reintentando...');
+                setTimeout(connectToDatabase, 5000);
+            } else {
+                console.error('❌ Error en conexión:', err.message);
+            }
+        });
+
     } catch (err) {
-        console.error('Error al reconectar a la base de datos:', err.message);
-        setTimeout(handleDisconnect, 5000); // Reintenta después de 5 segundos
+        console.error('❌ Error al conectar a la base de datos:', err.message);
+        setTimeout(connectToDatabase, 5000); // Reintentar conexión
     }
 };
 
-connection.on('error', (err) => {
-    if (err.code === 'PROTOCOL_CONNECTION_LOST') {
-        console.error('Conexión perdida, intentando reconectar...');
-        handleDisconnect();
-    } else {
-        throw err;
-    }
-});
+connectToDatabase();
 
+const getConnection = async () => {
+    if (connection) return connection;
 
-//! Obtenemos conexión y retornamos
-module.exports = { getConnection, handleDisconnect }
+    // Si no hay conexión, espera un poco e intenta de nuevo
+    return new Promise((resolve, reject) => {
+        const waitAndCheck = async () => {
+            if (connection) {
+                resolve(connection);
+            } else if (tries > 5) {
+                reject(new Error('No hay conexión activa con la base de datos'));
+            } else {
+                tries++;
+                setTimeout(waitAndCheck, 1000); // Revisa cada segundo
+            }
+        };
+
+        let tries = 0;
+        waitAndCheck();
+    });
+};
+
+module.exports = { getConnection };

@@ -4,6 +4,7 @@ const { getConnection } = require("../models/database");
 /**
  * @description Crear una publicación (Admin y Propietario)
  */
+
 const createPost = async (req = request, res = response) => {
   const { titulo, descripcion, precio, direccion } = req.body;
   const { id: propietarioId } = req.usuario; // Usuario autenticado
