@@ -1,143 +1,209 @@
-const { request, response } = require("express");
+/**
+ * @module post-controller
+ * @description Controlador para manejo de publicaciones: crear, obtener, actualizar, eliminar y aprobar posts.
+ */
+
 const { getConnection } = require("../database/database.js");
+const fs = require('fs');
+const path = require('path');
 
 /**
- * @description Crear una publicación (Admin y Propietario)
+ * Crea una nueva publicación en la base de datos.
+ *
+ * @async
+ * @function
+ * @param {Object} req - Objeto de solicitud HTTP.
+ * @param {Object} res - Objeto de respuesta HTTP.
+ * @returns {Promise<Response>} - Respuesta JSON con el estado de la operación.
  */
-const createPost = async (req = request, res = response) => {
-  const { titulo, descripcion, precio, direccion } = req.body;
-  const { id: propietarioId } = req.usuario; // Usuario autenticado
-
-  if (!titulo || !descripcion || !precio || !direccion) {
-    return res.status(400).json({ ok: false, msg: "Todos los campos son obligatorios" });
-  }
-
+const createPost = async (req, res) => {
   try {
-    const connection = await getConnection();
-    const [result] = await connection.query(
-      "INSERT INTO Propiedad (titulo, descripcion, precio, direccion, propietario_id) VALUES (?, ?, ?, ?, ?)",
-      [titulo, descripcion, precio, direccion, propietarioId]
+    const { titulo, descripcion, precio, ubicacion, tipo } = req.body;
+
+    if (!titulo || !descripcion || !precio || !ubicacion || !tipo) {
+      return res.status(400).json({ ok: false, msg: 'Faltan campos obligatorios' });
+    }
+
+    let imageNames = [];
+
+    if (!req.files || !req.files.imagenes) {
+      return res.status(400).json({ ok: false, msg: 'Debe subir al menos una imagen' });
+    }
+
+    const images = Array.isArray(req.files.imagenes) ? req.files.imagenes : [req.files.imagenes];
+    imageNames = images.map(file => file.name);
+
+    const usuario_id = req.user.id; // Asegúrate de que JWT funcione correctamente
+
+    const [result] = await pool.query(
+      `INSERT INTO posts (titulo, descripcion, precio, ubicacion, tipo, imagenes, usuario_id)
+             VALUES (?, ?, ?, ?, ?, JSON_ARRAY_PACK(?), ?)`,
+      [titulo, descripcion, precio, ubicacion, tipo, JSON.stringify(imageNames), usuario_id]
     );
 
-    res.status(201).json({ ok: true, msg: "Publicación creada", id: result.insertId });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ ok: false, msg: "Error del servidor" });
+    const postId = result.insertId;
+
+    return res.status(201).json({
+      ok: true,
+      post: {
+        id: postId,
+        titulo,
+        descripcion,
+        precio,
+        ubicacion,
+        tipo,
+        imagenes: imageNames,
+        usuario_id
+      }
+    });
+
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ ok: false, msg: 'Error al crear la publicación' });
   }
 };
 
-
 /**
- * @description Obtener todas las publicaciones (Todos los roles)
+ * Obtiene todas las publicaciones activas (no eliminadas).
+ *
+ * @async
+ * @function
+ * @param {Object} req - Objeto de solicitud HTTP.
+ * @param {Object} res - Objeto de respuesta HTTP.
+ * @returns {Promise<Response>} - Lista de publicaciones.
  */
-const getPosts = async (req = request, res = response) => {
-  try {
-    const connection = await getConnection();
-    const [result] = await connection.query("SELECT * FROM Propiedad");
 
-    res.status(200).json({ ok: true, publicaciones: result });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ ok: false, msg: "Error del servidor" });
+const getPosts = async (req, res) => {
+  const connection = await getConnection();
+  try {
+    const [rows] = await connection.query(`
+            SELECT *, JSON_UNQUOTE(JSON_EXTRACT(imagenes, '$')) AS imagenes 
+            FROM posts WHERE estado != 'eliminado'
+        `);
+
+    return res.json({ ok: true, posts: rows });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ ok: false, msg: 'Error al obtener las publicaciones' });
   }
 };
 
 /**
- * @description Actualizar una publicación (Admin y Propietario)
+ * Actualiza los datos de una publicación existente.
+ *
+ * @async
+ * @function
+ * @param {Object} req - Objeto de solicitud HTTP con parámetros y cuerpo.
+ * @param {Object} res - Objeto de respuesta HTTP.
+ * @returns {Promise<Response>} - Resultado de la operación.
  */
-const updatePost = async (req = request, res = response) => {
-  const { id } = req.params;
-  const { titulo, descripcion, precio, direccion } = req.body;
-  const { id: usuarioId, rol } = req.usuario;
-
+const updatePost = async (req, res) => {
+  const connection = await getConnection();
   try {
-    const connection = await getConnection();
-    const [publicacion] = await connection.query(
-      "SELECT * FROM Propiedad WHERE id = ?",
-      [id]
-    );
+    const { id } = req.params;
+    const { titulo, descripcion, precio, ubicacion, tipo } = req.body;
 
-    if (!publicacion.length) {
-      return res.status(404).json({ ok: false, msg: "Publicación no encontrada" });
+    // Validar existencia de la publicación
+    const [existing] = await connection.query('SELECT * FROM posts WHERE id = ?', [id]);
+
+    if (existing.length === 0 || existing[0].estado === 'eliminado') {
+      return res.status(404).json({ ok: false, msg: 'Publicación no encontrada' });
     }
 
-    const esPropietario = publicacion[0].propietario_id === usuarioId;
-
-    if (!["admin", "propietario"].includes(rol) || (rol === "propietario" && !esPropietario)) {
-      return res.status(403).json({ ok: false, msg: "No autorizado para actualizar esta publicación" });
+    // Permitir actualizar solo si es propietario o admin
+    const isOwner = existing[0].usuario_id === req.user.id;
+    if (!isOwner && !req.user.roles.includes('admin')) {
+      return res.status(403).json({ ok: false, msg: 'No tienes permiso para actualizar esta publicación' });
     }
 
+    // Actualizar datos
     await connection.query(
-      "UPDATE Propiedad SET titulo = ?, descripcion = ?, precio = ?, direccion = ? WHERE id = ?",
-      [titulo, descripcion, precio, direccion, id]
+      `UPDATE posts SET titulo = ?, descripcion = ?, precio = ?, ubicacion = ?, tipo = ?
+             WHERE id = ?`,
+      [titulo, descripcion, precio, ubicacion, tipo, id]
     );
 
-    res.status(200).json({ ok: true, msg: "Publicación actualizada" });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ ok: false, msg: "Error del servidor" });
+    return res.json({ ok: true, msg: 'Publicación actualizada correctamente' });
+
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ ok: false, msg: 'Error al actualizar la publicación' });
+  } finally {
+    connection.release();
   }
 };
 
 /**
- * @description Eliminar una publicación (Admin y Propietario)
+ * Elimina lógicamente una publicación (cambia su estado a 'eliminado').
+ *
+ * @async
+ * @function
+ * @param {Object} req - Objeto de solicitud HTTP con el ID de la publicación.
+ * @param {Object} res - Objeto de respuesta HTTP.
+ * @returns {Promise<Response>} - Resultado de la eliminación.
  */
-const deletePost = async (req = request, res = response) => {
-  const { id } = req.params;
-  const { id: usuarioId, rol } = req.usuario;
 
+const deletePost = async (req, res) => {
+  const connection = await getConnection();
   try {
-    const connection = await getConnection();
-    const [publicacion] = await connection.query(
-      "SELECT * FROM Propiedad WHERE id = ?",
-      [id]
-    );
+    const { id } = req.params;
 
-    if (!publicacion.length) {
-      return res.status(404).json({ ok: false, msg: "Publicación no encontrada" });
+    const [post] = await connection.query('SELECT * FROM posts WHERE id = ?', [id]);
+
+    if (post.length === 0 || post[0].estado === 'eliminado') {
+      return res.status(404).json({ ok: false, msg: 'Publicación no encontrada' });
     }
 
-    const esPropietario = publicacion[0].propietario_id === usuarioId;
-
-    if (!["admin", "propietario"].includes(rol) || (rol === "propietario" && !esPropietario)) {
-      return res.status(403).json({ ok: false, msg: "No autorizado para eliminar esta publicación" });
+    const isOwner = post[0].usuario_id === req.user.id;
+    if (!isOwner && !req.user.roles.includes('admin')) {
+      return res.status(403).json({ ok: false, msg: 'No tienes permiso para eliminar esta publicación' });
     }
 
-    await connection.query("DELETE FROM Propiedad WHERE id = ?", [id]);
+    await connection.query(`UPDATE posts SET estado = 'eliminado' WHERE id = ?`, [id]);
 
-    res.status(200).json({ ok: true, msg: "Publicación eliminada" });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ ok: false, msg: "Error del servidor" });
+    return res.json({ ok: true, msg: 'Publicación eliminada correctamente' });
+
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ ok: false, msg: 'Error al eliminar la publicación' });
+  } finally {
+    connection.release();
   }
 };
 
 /**
- * @description Aprobar una publicación (Admin)
+ * Aprueba una publicación (solo usuarios con rol 'admin').
+ *
+ * @async
+ * @function
+ * @param {Object} req - Objeto de solicitud HTTP con el ID de la publicación.
+ * @param {Object} res - Objeto de respuesta HTTP.
+ * @returns {Promise<Response>} - Resultado de la aprobación.
  */
-const approvePost = async (req = request, res = response) => {
-  const { id } = req.params;
-  const { rol } = req.usuario;
-
-  if (rol !== "admin") {
-    return res.status(403).json({ ok: false, msg: "No autorizado para aprobar publicaciones" });
-  }
-
+const approvePost = async (req, res) => {
+  const connection = await getConnection();
   try {
-    const connection = await getConnection();
-    const [result] = await connection.query(
-      "UPDATE Propiedad SET estado = 'aprobada' WHERE id = ?",
-      [id]
-    );
+    const { id } = req.params;
 
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ ok: false, msg: "Publicación no encontrada" });
+    const [post] = await connection.query('SELECT * FROM posts WHERE id = ?', [id]);
+
+    if (post.length === 0 || post[0].estado === 'eliminado') {
+      return res.status(404).json({ ok: false, msg: 'Publicación no encontrada' });
     }
 
-    res.status(200).json({ ok: true, msg: "Publicación aprobada exitosamente" });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ ok: false, msg: "Error del servidor" });
+    if (post[0].estado === 'aprobado') {
+      return res.status(400).json({ ok: false, msg: 'La publicación ya está aprobada' });
+    }
+
+    await connection.query(`UPDATE posts SET estado = 'aprobado' WHERE id = ?`, [id]);
+
+    return res.json({ ok: true, msg: 'Publicación aprobada correctamente' });
+
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ ok: false, msg: 'Error al aprobar la publicación' });
+  } finally {
+    connection.release();
   }
 };
 

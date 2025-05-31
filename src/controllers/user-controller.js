@@ -1,6 +1,7 @@
 /**
+ * @module controller/user-controller
  * @description Los controladores manejan la lógica de nuestra aplicación.
- * @description Function register registra usuario y dependiendo el rol lo agrega a la tabla correspondiente.
+ * @description Function register registra usuario.
  * @description Function login inicio de sesión
  * @description Function getUser obtiene un usuario en específico
  */
@@ -10,56 +11,46 @@ const { getConnection } = require("../database/database");
 const bcrypt = require("bcrypt");
 const { generateJwt } = require("../middlewares/jwt");
 
+/**
+ * Registra un nuevo usuario en la base de datos.
+ *
+ * @function register
+ * @param {Request} req - Objeto de solicitud HTTP.
+ * @param {Response} res - Objeto de respuesta HTTP.
+ * @returns {Response} JSON con estado de la operación.
+ */
 const register = async (req = request, res = response) => {
-  const { username, password, email, rol = "cliente", nombre, apellido, celular, dni, cuil } = req.body;
+  const { username, password, email, rol } = req.body;
+  const salt = 12;
 
-  if (!username || !password || !email || !nombre || !apellido || !celular) {
+  if (!username || !password || !email || !rol) {
     return res.status(400).json({ ok: false, msg: "Todos los campos son obligatorios" });
   }
 
   try {
-    // Hasheo de password con valor aleatorio
-    const salt = 12;
     const hashedPassword = await bcrypt.hash(password, salt);
 
     const connection = await getConnection();
-    // Indica que las operaciones siguientes son parte de transacción (las modificaciones a la BD quedan en espera no, se generan inmediatemente)
-    await connection.beginTransaction();
-
-    // Registrar en tabla usuario
-    const [userResult] = await connection.query(
-      "INSERT INTO Usuario (usuario, email, contrasenia, rol, nombre, apellido, celular) VALUES (?, ?, ?, ?, ?, ?, ?)",
-      [username, email, hashedPassword, rol, nombre, apellido, celular]
+    const result = await connection.query(
+      "INSERT INTO users (username, password, email, rol) VALUES (?, ?, ?, ?)",
+      [username, hashedPassword, email, rol]
     );
-    const userId = userResult.insertId;
 
-    // Registra datos específicos según el rol
-    if (rol === "cliente") {
-      if (!dni) {
-        return res.status(400).json({ ok: false, msg: "El DNI es obligatorio para clientes" });
-      }
-      await connection.query(
-        "INSERT INTO Cliente (id_usuario, dni) VALUES (?, ?)",
-        [userId, dni]
-      );
-    } else if (rol === "propietario") {
-      if (!cuil) {
-        return res.status(400).json({ ok: false, msg: "El CUIL es obligatorio para propietarios" });
-      }
-      await connection.query(
-        "INSERT INTO Propietario (id_usuario, cuil) VALUES (?, ?)",
-        [userId, cuil]
-      );
-    }
-    // La transacción no se confirma hasta covmmit.
-    await connection.commit();
-    res.status(201).json({ ok: true, msg: "Usuario registrado", id: userId });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ ok: false, msg: "Error en el servidor" });
+    res.status(201).json({ ok: true, msg: "Usuario registrado", id: result.insertId });
+  } catch (e) {
+    console.error('Error en registro:', e.message);
+    res.status(500).json({ ok: false, msg: "Error en el servidor", error: e.message });
   }
 };
 
+/**
+ * Inicia sesión de un usuario. Verifica credenciales y genera JWT.
+ *
+ * @function login
+ * @param {Request} req - Objeto de solicitud HTTP.
+ * @param {Response} res - Objeto de respuesta HTTP.
+ * @returns {Response} JSON con estado y token si fue exitoso.
+ */
 const login = async (req = request, res = response) => {
   const { username, password } = req.body;
 
@@ -76,25 +67,33 @@ const login = async (req = request, res = response) => {
     }
 
     const user = result[0];
-    const isPasswordValid = await bcrypt.compare(password, user.contrasenia);
+    const isPassword = await bcrypt.compare(password, user.password);
 
-    if (!isPasswordValid) {
+    if (!isPassword) {
       return res.status(401).json({ ok: false, msg: "Contraseña incorrecta" });
     }
 
     const token = await generateJwt({
-      sub: user.id,
-      username: user.usuario,
-      rol: user.rol,
+      id: user.id,
+      username: user.username,
+      rol: user.rol
     });
 
-    res.status(200).json({ ok: true, msg: "Login exitoso", token });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ ok: false, msg: "Error en el servidor" });
+    res.status(200).json({ ok: true, token, msg: 'Login exitoso' });
+  } catch (e) {
+    console.error('Error en login:', e.message);
+    res.status(500).json({ ok: false, msg: "Error en el servidor", error: e.message });
   }
 };
 
+/**
+ * Obtiene un usuario por su ID.
+ *
+ * @function getOne
+ * @param {Request} req - Objeto de solicitud HTTP (requiere `req.params.id`).
+ * @param {Response} res - Objeto de respuesta HTTP.
+ * @returns {Response} JSON con los datos del usuario si se encuentra.
+ */
 const getOne = async (req = request, res = response) => {
   const { id } = req.params;
 
