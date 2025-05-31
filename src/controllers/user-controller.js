@@ -1,4 +1,5 @@
 /**
+ * @module controller/user-controller
  * @description Los controladores manejan la lógica de nuestra aplicación.
  * @description Function register registra usuario.
  * @description Function login inicio de sesión
@@ -10,11 +11,19 @@ const { getConnection } = require("../database/database");
 const bcrypt = require("bcrypt");
 const { generateJwt } = require("../middlewares/jwt");
 
+/**
+ * Registra un nuevo usuario en la base de datos.
+ *
+ * @function register
+ * @param {Request} req - Objeto de solicitud HTTP.
+ * @param {Response} res - Objeto de respuesta HTTP.
+ * @returns {Response} JSON con estado de la operación.
+ */
 const register = async (req = request, res = response) => {
   const { username, password, email, rol } = req.body;
   const salt = 12;
 
-  if (!username || !password || !email || !rol ) {
+  if (!username || !password || !email || !rol) {
     return res.status(400).json({ ok: false, msg: "Todos los campos son obligatorios" });
   }
 
@@ -34,6 +43,14 @@ const register = async (req = request, res = response) => {
   }
 };
 
+/**
+ * Inicia sesión de un usuario. Verifica credenciales y genera JWT.
+ *
+ * @function login
+ * @param {Request} req - Objeto de solicitud HTTP.
+ * @param {Response} res - Objeto de respuesta HTTP.
+ * @returns {Response} JSON con estado y token si fue exitoso.
+ */
 const login = async (req = request, res = response) => {
   const { username, password } = req.body;
 
@@ -69,6 +86,14 @@ const login = async (req = request, res = response) => {
   }
 };
 
+/**
+ * Obtiene un usuario por su ID.
+ *
+ * @function getOne
+ * @param {Request} req - Objeto de solicitud HTTP (requiere `req.params.id`).
+ * @param {Response} res - Objeto de respuesta HTTP.
+ * @returns {Response} JSON con los datos del usuario si se encuentra.
+ */
 const getOne = async (req = request, res = response) => {
   const { id } = req.params;
 

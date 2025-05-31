@@ -1,6 +1,7 @@
 /**
- * Configuración para conexión con base de datos
- * @Description mysql/promise abre pool de conexión para la BD, recibe query y devuelve response como objeto.
+ * @module config/database
+ * 
+ * @Description Configuración para conexión con base de datos, mysql/promise abre pool de conexión para la BD, recibe query y devuelve response como objeto.
  */
 
 const mysql = require('mysql2/promise');
@@ -10,6 +11,13 @@ const config = require('./../config.js');
 //! Generamos conexión
 let connection;
 
+/**
+ * Conecta a la base de datos MySQL utilizando configuración del archivo config.js.
+ * En caso de error o pérdida de conexión, intenta reconectar automáticamente.
+ *
+ * @async
+ * @function connectToDatabase
+ */
 const connectToDatabase = async () => {
     try {
         const conn = await mysql.createConnection({
@@ -42,6 +50,14 @@ const connectToDatabase = async () => {
 
 connectToDatabase();
 
+/**
+ * Retorna la conexión activa con la base de datos.
+ * Si no existe, espera y reintenta hasta obtenerla (máx. 5 intentos).
+ *
+ * @async
+ * @function getConnection
+ * @returns {Promise<Connection>} Conexión activa a MySQL.
+ */
 const getConnection = async () => {
     if (connection) return connection;
 

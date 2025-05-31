@@ -1,9 +1,20 @@
+/**
+ * @module post-controller
+ * @description Controlador para manejo de publicaciones: crear, obtener, actualizar, eliminar y aprobar posts.
+ */
+
 const { getConnection } = require("../database/database");
 const fs = require('fs');
 const path = require('path');
 
 /**
- * @description Crea una nueva publicación
+ * Crea una nueva publicación en la base de datos.
+ *
+ * @async
+ * @function
+ * @param {Object} req - Objeto de solicitud HTTP.
+ * @param {Object} res - Objeto de respuesta HTTP.
+ * @returns {Promise<Response>} - Respuesta JSON con el estado de la operación.
  */
 const createPost = async (req, res) => {
   try {
@@ -53,8 +64,15 @@ const createPost = async (req, res) => {
 };
 
 /**
- * @description Obtiene todas las publicaciones
+ * Obtiene todas las publicaciones activas (no eliminadas).
+ *
+ * @async
+ * @function
+ * @param {Object} req - Objeto de solicitud HTTP.
+ * @param {Object} res - Objeto de respuesta HTTP.
+ * @returns {Promise<Response>} - Lista de publicaciones.
  */
+
 const getPosts = async (req, res) => {
   const connection = await getConnection();
   try {
@@ -71,7 +89,13 @@ const getPosts = async (req, res) => {
 };
 
 /**
- * @description Actualiza una publicación
+ * Actualiza los datos de una publicación existente.
+ *
+ * @async
+ * @function
+ * @param {Object} req - Objeto de solicitud HTTP con parámetros y cuerpo.
+ * @param {Object} res - Objeto de respuesta HTTP.
+ * @returns {Promise<Response>} - Resultado de la operación.
  */
 const updatePost = async (req, res) => {
   const connection = await getConnection();
@@ -110,8 +134,15 @@ const updatePost = async (req, res) => {
 };
 
 /**
- * @description Elimina (lógicamente) una publicación
+ * Elimina lógicamente una publicación (cambia su estado a 'eliminado').
+ *
+ * @async
+ * @function
+ * @param {Object} req - Objeto de solicitud HTTP con el ID de la publicación.
+ * @param {Object} res - Objeto de respuesta HTTP.
+ * @returns {Promise<Response>} - Resultado de la eliminación.
  */
+
 const deletePost = async (req, res) => {
   const connection = await getConnection();
   try {
@@ -141,7 +172,13 @@ const deletePost = async (req, res) => {
 };
 
 /**
- * @description Aprueba una publicación (solo admin)
+ * Aprueba una publicación (solo usuarios con rol 'admin').
+ *
+ * @async
+ * @function
+ * @param {Object} req - Objeto de solicitud HTTP con el ID de la publicación.
+ * @param {Object} res - Objeto de respuesta HTTP.
+ * @returns {Promise<Response>} - Resultado de la aprobación.
  */
 const approvePost = async (req, res) => {
   const connection = await getConnection();

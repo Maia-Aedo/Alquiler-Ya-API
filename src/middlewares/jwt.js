@@ -1,11 +1,24 @@
 /**
- * @description Comprobamos si el token de la petición tiene firma válida y es auténtico.
- * @description function generateJwt genera el payload con la información del usuario y establece expiración.
+ * @module middlewares/jwt
+ * @description Middleware para verificar la validez de un token JWT y función para generar nuevos tokens.
  */
 
 const jwt = require("jsonwebtoken");
 const config = require("../config");
 const { response, request } = require("express");
+
+/**
+ * Middleware que verifica si un JWT es válido.
+ *
+ * @function authenticateJWT
+ * @param {Request} req - Objeto de solicitud de Express.
+ * @param {Response} res - Objeto de respuesta de Express.
+ * @param {Function} next - Función para pasar al siguiente middleware.
+ * @returns {Response|void} Devuelve error si el token no es válido o continúa con la ejecución.
+ *
+ * @example
+ * router.get('/ruta-protegida', authenticateJWT, controlador);
+ */
 
 const authenticateJWT = (req = request, res = response, next) => {
   const token = req.header("Authorization")?.split(" ")[1];
@@ -24,7 +37,22 @@ const authenticateJWT = (req = request, res = response, next) => {
   });
 };
 
-// Genera un nuevo token JWT
+/**
+ * Genera un token JWT con la información del usuario.
+ *
+ * @async
+ * @function generateJwt
+ * @param {Object} user - Objeto que contiene datos del usuario.
+ * @param {number} user.id - ID del usuario.
+ * @param {string} user.username - Nombre de usuario.
+ * @param {string} user.nombre - Nombre completo del usuario.
+ * @param {string} user.rol - Rol del usuario (por defecto 'cliente').
+ * @returns {Promise<string>} Token JWT firmado.
+ *
+ * @example
+ * const token = await generateJwt(usuario);
+ */
+
 const generateJwt = async (user) => {
   const payload = {
     id: user.id,
