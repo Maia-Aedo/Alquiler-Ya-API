@@ -30,7 +30,6 @@ module.exports = {
     database: process.MYSQL_DB,
     user: process.env.MYSQL_USER,
     password: process.env.MYSQL_PASSWORD,
-    url: process.env.MYSQL_URI,
     db_port: process.env.MYSQL_PORT,
     secretKey: process.env.secret_seed,
 }
