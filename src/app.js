@@ -52,9 +52,9 @@ app.use(fileUpload({
 }))
 
 // ! Direcciones de rutas
-app.use(users)
-app.use(files)
-app.use(posts)
+app.use('/api/users', users);
+app.use('/api/files', files);
+app.use('/api/posts', posts);
 
 // Eporta la aplicación para userla en index.
 module.exports = app;
