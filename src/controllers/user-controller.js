@@ -32,7 +32,7 @@ const register = async (req = request, res = response) => {
 
     const connection = await getConnection();
     const result = await connection.query(
-      "INSERT INTO users (username, password, email, rol) VALUES (?, ?, ?, ?)",
+      "INSERT INTO Usuario (username, password, email, rol) VALUES (?, ?, ?, ?)",
       [username, hashedPassword, email, rol]
     );
 

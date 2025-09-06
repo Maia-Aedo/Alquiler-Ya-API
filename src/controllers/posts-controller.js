@@ -33,10 +33,10 @@ const createPost = async (req, res) => {
     const images = Array.isArray(req.files.imagenes) ? req.files.imagenes : [req.files.imagenes];
     imageNames = images.map(file => file.name);
 
-    const usuario_id = req.user.id; // Asegúrate de que JWT funcione correctamente
+    const usuario_id = req.usuario.id; // Asegúrate de que JWT funcione correctamente
 
     const [result] = await pool.query(
-      `INSERT INTO posts (titulo, descripcion, precio, ubicacion, tipo, imagenes, usuario_id)
+      `INSERT INTO Publicacion (titulo, descripcion, precio, ubicacion, tipo, imagenes, usuario_id)
              VALUES (?, ?, ?, ?, ?, JSON_ARRAY_PACK(?), ?)`,
       [titulo, descripcion, precio, ubicacion, tipo, JSON.stringify(imageNames), usuario_id]
     );
@@ -78,7 +78,7 @@ const getPosts = async (req, res) => {
   try {
     const [rows] = await connection.query(`
             SELECT *, JSON_UNQUOTE(JSON_EXTRACT(imagenes, '$')) AS imagenes 
-            FROM posts WHERE estado != 'eliminado'
+            FROM Publicacion WHERE estado != 'eliminado'
         `);
 
     return res.json({ ok: true, posts: rows });
@@ -104,21 +104,21 @@ const updatePost = async (req, res) => {
     const { titulo, descripcion, precio, ubicacion, tipo } = req.body;
 
     // Validar existencia de la publicación
-    const [existing] = await connection.query('SELECT * FROM posts WHERE id = ?', [id]);
+    const [existing] = await connection.query('SELECT * FROM Publicacion WHERE id = ?', [id]);
 
     if (existing.length === 0 || existing[0].estado === 'eliminado') {
       return res.status(404).json({ ok: false, msg: 'Publicación no encontrada' });
     }
 
     // Permitir actualizar solo si es propietario o admin
-    const isOwner = existing[0].usuario_id === req.user.id;
+    const isOwner = existing[0].usuario_id === req.usuario.id;
     if (!isOwner && !req.user.roles.includes('admin')) {
       return res.status(403).json({ ok: false, msg: 'No tienes permiso para actualizar esta publicación' });
     }
 
     // Actualizar datos
     await connection.query(
-      `UPDATE posts SET titulo = ?, descripcion = ?, precio = ?, ubicacion = ?, tipo = ?
+      `UPDATE Publicacion SET titulo = ?, descripcion = ?, precio = ?, ubicacion = ?, tipo = ?
              WHERE id = ?`,
       [titulo, descripcion, precio, ubicacion, tipo, id]
     );
@@ -148,18 +148,18 @@ const deletePost = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const [post] = await connection.query('SELECT * FROM posts WHERE id = ?', [id]);
+    const [post] = await connection.query('SELECT * FROM Publicacion WHERE id = ?', [id]);
 
     if (post.length === 0 || post[0].estado === 'eliminado') {
       return res.status(404).json({ ok: false, msg: 'Publicación no encontrada' });
     }
 
-    const isOwner = post[0].usuario_id === req.user.id;
-    if (!isOwner && !req.user.roles.includes('admin')) {
+    const isOwner = post[0].usuario_id === req.usuario.id;
+    if (!isOwner && !req.usuario.rol === 'admin') {
       return res.status(403).json({ ok: false, msg: 'No tienes permiso para eliminar esta publicación' });
     }
 
-    await connection.query(`UPDATE posts SET estado = 'eliminado' WHERE id = ?`, [id]);
+    await connection.query(`UPDATE Publicacion SET estado = 'eliminado' WHERE id = ?`, [id]);
 
     return res.json({ ok: true, msg: 'Publicación eliminada correctamente' });
 
@@ -185,7 +185,7 @@ const approvePost = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const [post] = await connection.query('SELECT * FROM posts WHERE id = ?', [id]);
+    const [post] = await connection.query('SELECT * FROM Publicacion WHERE id = ?', [id]);
 
     if (post.length === 0 || post[0].estado === 'eliminado') {
       return res.status(404).json({ ok: false, msg: 'Publicación no encontrada' });
@@ -195,7 +195,7 @@ const approvePost = async (req, res) => {
       return res.status(400).json({ ok: false, msg: 'La publicación ya está aprobada' });
     }
 
-    await connection.query(`UPDATE posts SET estado = 'aprobado' WHERE id = ?`, [id]);
+    await connection.query(`UPDATE Publicacion SET estado = 'aprobado' WHERE id = ?`, [id]);
 
     return res.json({ ok: true, msg: 'Publicación aprobada correctamente' });
 

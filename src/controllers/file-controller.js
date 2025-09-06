@@ -58,9 +58,24 @@ const postFile = async (req, res) => {
         }
 
         const file = req.files.file;
+        const originalName = file.name;
+        const extension = originalName.split('.').pop().toLowerCase();
+
+        if(!extensions.includes(extension)) {
+            return res.status(400).json({
+                ok: false,
+                msg: `Extensión no permitida. Solo: ${extensions.join(', ' )}`
+            })
+        }
 
         const img_id = await uploadFiles(file);
         const record = { img_id };
+
+        const connection = await getConnection();
+        await connection.query(
+            "INSERT INTO Archivo (img_id, nombre_original, extension, usuario_id) VALUES (?, ?, ?, ?",
+            [img_id, originalName, extension, req.usuario.id || null]
+        );
 
         return res.status(200).json({ ok: true, record, msg: 'Subido correctamente' });
 

@@ -26,10 +26,9 @@ config();
 
 module.exports = {
     host: process.env.MYSQL_HOST,
-    port: process.env.PORT,
-    database: process.MYSQL_DB,
+    port: process.env.MYSQL_PORT,
+    database: process.env.MYSQL_DB,
     user: process.env.MYSQL_USER,
     password: process.env.MYSQL_PASSWORD,
-    db_port: process.env.MYSQL_PORT,
     secretKey: process.env.secret_seed,
 }
