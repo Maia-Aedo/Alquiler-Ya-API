@@ -20,8 +20,10 @@
     "express-fileupload": "^1.5.1",
     "express-validator": "^7.2.0",
     "jsonwebtoken": "^9.0.2",
-    "mysql2": "^3.11.4",
+    "mysql2": "^3.14.5",
     "promise-mysql": "^5.2.0",
+    "reflect-metadata": "^0.2.2",
+    "typeorm": "^0.3.26",
     "uuid": "^11.1.0"
   },
   "devDependencies": {
