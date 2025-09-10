@@ -1,20 +1,12 @@
 /**
  * @module post-controller
- * @description Controlador para manejo de publicaciones: crear, obtener, actualizar, eliminar y aprobar posts.
  */
 
-const { getConnection } = require("../database/database.js");
-const fs = require('fs');
-const path = require('path');
+const { AppDataSource } = require("../database/database");
+const Publicacion = require("../database/entities/Posts");
 
 /**
- * Crea una nueva publicación en la base de datos.
- *
- * @async
- * @function
- * @param {Object} req - Objeto de solicitud HTTP.
- * @param {Object} res - Objeto de respuesta HTTP.
- * @returns {Promise<Response>} - Respuesta JSON con el estado de la operación.
+ * Crea una nueva publicación
  */
 const createPost = async (req, res) => {
   try {
@@ -24,186 +16,142 @@ const createPost = async (req, res) => {
       return res.status(400).json({ ok: false, msg: 'Faltan campos obligatorios' });
     }
 
-    let imageNames = [];
-
     if (!req.files || !req.files.imagenes) {
       return res.status(400).json({ ok: false, msg: 'Debe subir al menos una imagen' });
     }
 
     const images = Array.isArray(req.files.imagenes) ? req.files.imagenes : [req.files.imagenes];
-    imageNames = images.map(file => file.name);
+    const imageNames = images.map(file => file.name);
 
-    const usuario_id = req.usuario.id; // Asegúrate de que JWT funcione correctamente
+    const usuario_id = req.usuario.id;
 
-    const [result] = await pool.query(
-      `INSERT INTO Publicacion (titulo, descripcion, precio, ubicacion, tipo, imagenes, usuario_id)
-             VALUES (?, ?, ?, ?, ?, JSON_ARRAY_PACK(?), ?)`,
-      [titulo, descripcion, precio, ubicacion, tipo, JSON.stringify(imageNames), usuario_id]
-    );
+    const postRepo = AppDataSource.getRepository("Publicacion");
 
-    const postId = result.insertId;
-
-    return res.status(201).json({
-      ok: true,
-      post: {
-        id: postId,
-        titulo,
-        descripcion,
-        precio,
-        ubicacion,
-        tipo,
-        imagenes: imageNames,
-        usuario_id
-      }
+    const newPost = postRepo.create({
+      titulo,
+      descripcion,
+      precio,
+      ubicacion,
+      tipo,
+      imagenes: imageNames,
+      usuario: { id: usuario_id }, // relación ManyToOne
     });
 
+    const savedPost = await postRepo.save(newPost);
+
+    res.status(201).json({
+      ok: true,
+      post: savedPost
+    });
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ ok: false, msg: 'Error al crear la publicación' });
+    res.status(500).json({ ok: false, msg: 'Error al crear la publicación', error: err.message });
   }
 };
 
 /**
- * Obtiene todas las publicaciones activas (no eliminadas).
- *
- * @async
- * @function
- * @param {Object} req - Objeto de solicitud HTTP.
- * @param {Object} res - Objeto de respuesta HTTP.
- * @returns {Promise<Response>} - Lista de publicaciones.
+ * Obtiene todas las publicaciones activas
  */
-
 const getPosts = async (req, res) => {
-  const connection = await getConnection();
   try {
-    const [rows] = await connection.query(`
-            SELECT *, JSON_UNQUOTE(JSON_EXTRACT(imagenes, '$')) AS imagenes 
-            FROM Publicacion WHERE estado != 'eliminado'
-        `);
+    const postRepo = AppDataSource.getRepository("Publicacion");
+    const posts = await postRepo.find({
+      where: { estado: "pendiente" },
+      relations: ["usuario"],
+    });
 
-    return res.json({ ok: true, posts: rows });
+    res.json({ ok: true, posts });
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ ok: false, msg: 'Error al obtener las publicaciones' });
+    res.status(500).json({ ok: false, msg: 'Error al obtener las publicaciones' });
   }
 };
 
 /**
- * Actualiza los datos de una publicación existente.
- *
- * @async
- * @function
- * @param {Object} req - Objeto de solicitud HTTP con parámetros y cuerpo.
- * @param {Object} res - Objeto de respuesta HTTP.
- * @returns {Promise<Response>} - Resultado de la operación.
+ * Actualiza una publicación
  */
 const updatePost = async (req, res) => {
-  const connection = await getConnection();
   try {
     const { id } = req.params;
     const { titulo, descripcion, precio, ubicacion, tipo } = req.body;
+    const postRepo = AppDataSource.getRepository("Publicacion");
 
-    // Validar existencia de la publicación
-    const [existing] = await connection.query('SELECT * FROM Publicacion WHERE id = ?', [id]);
-
-    if (existing.length === 0 || existing[0].estado === 'eliminado') {
+    const post = await postRepo.findOne({ where: { id: parseInt(id) }, relations: ["usuario"] });
+    if (!post || post.estado === "eliminado") {
       return res.status(404).json({ ok: false, msg: 'Publicación no encontrada' });
     }
 
-    // Permitir actualizar solo si es propietario o admin
-    const isOwner = existing[0].usuario_id === req.usuario.id;
-    if (!isOwner && !req.user.roles.includes('admin')) {
+    const isOwner = post.usuario.id === req.usuario.id;
+    if (!isOwner && req.usuario.rol !== 'admin') {
       return res.status(403).json({ ok: false, msg: 'No tienes permiso para actualizar esta publicación' });
     }
 
-    // Actualizar datos
-    await connection.query(
-      `UPDATE Publicacion SET titulo = ?, descripcion = ?, precio = ?, ubicacion = ?, tipo = ?
-             WHERE id = ?`,
-      [titulo, descripcion, precio, ubicacion, tipo, id]
-    );
+    post.titulo = titulo ?? post.titulo;
+    post.descripcion = descripcion ?? post.descripcion;
+    post.precio = precio ?? post.precio;
+    post.ubicacion = ubicacion ?? post.ubicacion;
+    post.tipo = tipo ?? post.tipo;
 
-    return res.json({ ok: true, msg: 'Publicación actualizada correctamente' });
-
+    const updatedPost = await postRepo.save(post);
+    res.json({ ok: true, msg: 'Publicación actualizada', post: updatedPost });
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ ok: false, msg: 'Error al actualizar la publicación' });
-  } finally {
-    connection.release();
+    res.status(500).json({ ok: false, msg: 'Error al actualizar la publicación' });
   }
 };
 
 /**
- * Elimina lógicamente una publicación (cambia su estado a 'eliminado').
- *
- * @async
- * @function
- * @param {Object} req - Objeto de solicitud HTTP con el ID de la publicación.
- * @param {Object} res - Objeto de respuesta HTTP.
- * @returns {Promise<Response>} - Resultado de la eliminación.
+ * Elimina lógicamente una publicación
  */
-
 const deletePost = async (req, res) => {
-  const connection = await getConnection();
   try {
     const { id } = req.params;
+    const postRepo = AppDataSource.getRepository("Publicacion");
 
-    const [post] = await connection.query('SELECT * FROM Publicacion WHERE id = ?', [id]);
-
-    if (post.length === 0 || post[0].estado === 'eliminado') {
+    const post = await postRepo.findOne({ where: { id: parseInt(id) }, relations: ["usuario"] });
+    if (!post || post.estado === "eliminado") {
       return res.status(404).json({ ok: false, msg: 'Publicación no encontrada' });
     }
 
-    const isOwner = post[0].usuario_id === req.usuario.id;
-    if (!isOwner && !req.usuario.rol === 'admin') {
+    const isOwner = post.usuario.id === req.usuario.id;
+    if (!isOwner && req.usuario.rol !== 'admin') {
       return res.status(403).json({ ok: false, msg: 'No tienes permiso para eliminar esta publicación' });
     }
 
-    await connection.query(`UPDATE Publicacion SET estado = 'eliminado' WHERE id = ?`, [id]);
+    post.estado = "eliminado";
+    await postRepo.save(post);
 
-    return res.json({ ok: true, msg: 'Publicación eliminada correctamente' });
-
+    res.json({ ok: true, msg: 'Publicación eliminada correctamente' });
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ ok: false, msg: 'Error al eliminar la publicación' });
-  } finally {
-    connection.release();
+    res.status(500).json({ ok: false, msg: 'Error al eliminar la publicación' });
   }
 };
 
 /**
- * Aprueba una publicación (solo usuarios con rol 'admin').
- *
- * @async
- * @function
- * @param {Object} req - Objeto de solicitud HTTP con el ID de la publicación.
- * @param {Object} res - Objeto de respuesta HTTP.
- * @returns {Promise<Response>} - Resultado de la aprobación.
+ * Aprueba una publicación (solo admin)
  */
 const approvePost = async (req, res) => {
-  const connection = await getConnection();
   try {
     const { id } = req.params;
+    const postRepo = AppDataSource.getRepository("Publicacion");
 
-    const [post] = await connection.query('SELECT * FROM Publicacion WHERE id = ?', [id]);
-
-    if (post.length === 0 || post[0].estado === 'eliminado') {
+    const post = await postRepo.findOne({ where: { id: parseInt(id) } });
+    if (!post || post.estado === "eliminado") {
       return res.status(404).json({ ok: false, msg: 'Publicación no encontrada' });
     }
 
-    if (post[0].estado === 'aprobado') {
+    if (post.estado === "aprobado") {
       return res.status(400).json({ ok: false, msg: 'La publicación ya está aprobada' });
     }
 
-    await connection.query(`UPDATE Publicacion SET estado = 'aprobado' WHERE id = ?`, [id]);
+    post.estado = "aprobado";
+    await postRepo.save(post);
 
-    return res.json({ ok: true, msg: 'Publicación aprobada correctamente' });
-
+    res.json({ ok: true, msg: 'Publicación aprobada correctamente' });
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ ok: false, msg: 'Error al aprobar la publicación' });
-  } finally {
-    connection.release();
+    res.status(500).json({ ok: false, msg: 'Error al aprobar la publicación' });
   }
 };
 

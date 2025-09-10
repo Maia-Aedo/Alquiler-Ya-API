@@ -4,10 +4,9 @@
  * Utiliza middlewares de autenticación y control de roles para proteger los endpoints.
  */
 
-const { Router } = require('express');// Router para usar metodos POST-PUT-GET-DELETE-PATCH
-const methods = require('../controllers/file-controller.js'); // Métodos de controlador
-const { authenticateJWT } = require('../middlewares/jwt.js'); // Autenticación
-const { verifyRole } = require('../middlewares/user-roles.js'); // Roles de usuario
+const { Router } = require('express');
+const methods = require('../controllers/file-controller.js'); // nuevo controlador con TypeORM
+const { authenticateJWT } = require('../middlewares/jwt.js');
 
 const router = Router();
 

@@ -4,7 +4,7 @@
  * Incluye control de acceso por roles y autenticación JWT.
  */
 const { Router } = require("express");
-const methods = require('../controllers/posts-controller.js');
+const methods = require('../controllers/posts-controller.js'); // nuevo controlador con TypeORM
 const { authenticateJWT } = require("../middlewares/jwt");
 const { verifyRole } = require('../middlewares/user-roles.js');
 
