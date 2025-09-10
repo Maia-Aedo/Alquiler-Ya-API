@@ -20,6 +20,7 @@ const { generateJwt } = require("../middlewares/jwt");
  * @returns {Response} JSON con estado de la operación.
  */
 const register = async (req = request, res = response) => {
+  console.log('Datos recibidos:', req.body);
   const { username, password, email, rol } = req.body;
   const salt = 12;
 
@@ -60,7 +61,7 @@ const login = async (req = request, res = response) => {
 
   try {
     const connection = await getConnection();
-    const [result] = await connection.query("SELECT * FROM Usuario WHERE usuario = ?", [username]);
+    const [result] = await connection.query("SELECT * FROM Usuario WHERE username = ?", [username]);
 
     if (!result.length) {
       return res.status(404).json({ ok: false, msg: "Usuario no encontrado" });
