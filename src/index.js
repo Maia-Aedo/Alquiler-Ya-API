@@ -2,7 +2,7 @@
 require("dotenv").config();
 require("reflect-metadata"); // para TypeORM
 const app = require("./app");
-const AppDataSource = require("./database/database");
+const { AppDataSource } = require("./database/database");
 
 /**
  * Función principal que inicia la aplicación.

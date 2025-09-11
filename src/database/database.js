@@ -1,4 +1,4 @@
-require("reflect-metadata");
+require('dotenv').config();
 const { DataSource } = require("typeorm");
 
 const AppDataSource = new DataSource({
@@ -8,9 +8,10 @@ const AppDataSource = new DataSource({
     username: process.env.MYSQL_USER,
     password: process.env.MYSQL_PASSWORD,
     database: process.env.MYSQL_DB,
-    synchronize: true, // crea las tablas automáticamente
+    synchronize: false,
     logging: false,
     entities: [__dirname + "/entities/*.js"],
+    migrations: [__dirname + "/migrations/*.js"], // ruta para migraciones
 });
 
-module.exports = AppDataSource;
+module.exports = { AppDataSource };

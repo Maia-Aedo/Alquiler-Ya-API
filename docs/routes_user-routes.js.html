@@ -3,7 +3,7 @@
 <head>
     
     <meta charset="utf-8">
-    <title>Home - Documentation</title>
+    <title>routes/user-routes.js - Documentation</title>
     
     
     <script src="scripts/prettify/prettify.js"></script>
@@ -35,31 +35,58 @@
 
 <div id="main">
     
+    <h1 class="page-title">routes/user-routes.js</h1>
+    
 
     
 
 
 
     
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * @module routes/users
+ * @description Define las rutas para autenticación y gestión de usuarios.
+ * Incluye registro, login y consulta de usuario por ID con autenticación JWT.
+ */
+const { Router } = require('express');
+const methods = require('../controllers/user-controller.js'); // nuevo controlador con TypeORM
+const { authenticateJWT } = require('../middlewares/jwt.js');
+const { verifyRole } = require('../middlewares/user-roles.js');
 
+const router = Router();
 
-    <section class="package">
-        <h3> </h3>		
+/**
+ * @route POST /register
+ * @summary Registra un nuevo usuario.
+ * @description Ruta pública para que cualquier usuario pueda registrarse.
+ * @controller register - Método encargado de registrar usuarios.
+ */
+router.post("/register", methods.register);
+
+/**
+ * @route POST /login
+ * @summary Inicia sesión y retorna un token JWT si las credenciales son válidas.
+ * @controller login - Método encargado de autenticar y emitir token.
+ */
+router.post("/login", methods.login);
+
+/**
+ * @route GET /users/:id
+ * @summary Obtiene información de un usuario por ID.
+ * @middleware authenticateJWT - Requiere autenticación JWT para acceder a esta ruta.
+ * @controller getOne - Método encargado de obtener un usuario específico.
+ */
+router.get("/users/:id", authenticateJWT, methods.getOne);
+
+/**
+ * Nota: El middleware `authenticateJWT` asegura que solo usuarios autenticados
+ * puedan acceder a la información sensible como el token.
+ */
+module.exports = router;</code></pre>
+        </article>
     </section>
-
-
-
-
-
-
-
-
-
-    
-
-
-
-
 
 
 
