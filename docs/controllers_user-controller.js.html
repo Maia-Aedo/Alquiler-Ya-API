@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    
+    <meta charset="utf-8">
+    <title>controllers/user-controller.js - Documentation</title>
+    
+    
+    <script src="scripts/prettify/prettify.js"></script>
+    <script src="scripts/prettify/lang-css.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc.css">
+    <script src="scripts/nav.js" defer></script>
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+
+<input type="checkbox" id="nav-trigger" class="nav-trigger" />
+<label for="nav-trigger" class="navicon-button x">
+  <div class="navicon"></div>
+</label>
+
+<label for="nav-trigger" class="overlay"></label>
+
+<nav >
+    
+    
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="module.exports.html">exports</a></li></ul><h3>Modules</h3><ul><li><a href="module-app.html">app</a></li><li><a href="module-config.html">config</a></li><li><a href="module-controller_user-controller.html">controller/user-controller</a><ul class='methods'><li data-type='method'><a href="module-controller_user-controller.html#~getOne">getOne</a></li><li data-type='method'><a href="module-controller_user-controller.html#~login">login</a></li><li data-type='method'><a href="module-controller_user-controller.html#~register">register</a></li></ul></li><li><a href="module-file-controller.html">file-controller</a><ul class='methods'><li data-type='method'><a href="module-file-controller.html#~postFile">postFile</a></li><li data-type='method'><a href="module-file-controller.html#~uploadFiles">uploadFiles</a></li></ul></li><li><a href="module-helpers_uploader.html">helpers/uploader</a><ul class='methods'><li data-type='method'><a href="module-helpers_uploader.html#~uploadFiles">uploadFiles</a></li></ul></li><li><a href="module-middlewares_jwt.html">middlewares/jwt</a><ul class='methods'><li data-type='method'><a href="module-middlewares_jwt.html#~authenticateJWT">authenticateJWT</a></li><li data-type='method'><a href="module-middlewares_jwt.html#~generateJwt">generateJwt</a></li></ul></li><li><a href="module-middlewares_user-roles.html">middlewares/user-roles</a><ul class='methods'><li data-type='method'><a href="module-middlewares_user-roles.html#~verifyRole">verifyRole</a></li></ul></li><li><a href="module-post-controller.html">post-controller</a><ul class='methods'><li data-type='method'><a href="module-post-controller.html#~approvePost">approvePost</a></li><li data-type='method'><a href="module-post-controller.html#~createPost">createPost</a></li><li data-type='method'><a href="module-post-controller.html#~deletePost">deletePost</a></li><li data-type='method'><a href="module-post-controller.html#~getPosts">getPosts</a></li><li data-type='method'><a href="module-post-controller.html#~updatePost">updatePost</a></li></ul></li><li><a href="module-routes_files.html">routes/files</a></li><li><a href="module-routes_posts.html">routes/posts</a></li><li><a href="module-routes_users.html">routes/users</a></li></ul><h3>Global</h3><ul><li><a href="global.html#main">main</a></li></ul>
+    
+</nav>
+
+<div id="main">
+    
+    <h1 class="page-title">controllers/user-controller.js</h1>
+    
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * @module controller/user-controller
+ */
+
+const { request, response } = require("express");
+const { AppDataSource } = require("../database/database");
+const bcrypt = require("bcrypt");
+const { generateJwt } = require("../middlewares/jwt");
+
+// obtenemos el repositorio de Usuario
+const Usuario = require("../database/entities/User");
+
+/**
+ * Registra un nuevo usuario
+ */
+const register = async (req = request, res = response) => {
+  const { username, password, email, rol } = req.body;
+
+  if (!username || !password || !email || !rol) {
+    return res.status(400).json({ ok: false, msg: "Todos los campos son obligatorios" });
+  }
+
+  try {
+    const userRepo = AppDataSource.getRepository("Usuario");
+
+    // verificar si ya existe
+    const exist = await userRepo.findOne({ where: { username } });
+    if (exist) {
+      return res.status(400).json({ ok: false, msg: "El usuario ya existe" });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 12);
+
+    const newUser = userRepo.create({
+      username,
+      password: hashedPassword,
+      email,
+      rol,
+    });
+
+    const savedUser = await userRepo.save(newUser);
+
+    res.status(201).json({ ok: true, msg: "Usuario registrado", id: savedUser.id });
+  } catch (e) {
+    console.error("Error en registro:", e.message);
+    res.status(500).json({ ok: false, msg: "Error en el servidor", error: e.message });
+  }
+};
+
+/**
+ * Login de usuario
+ */
+const login = async (req = request, res = response) => {
+  const { username, password } = req.body;
+
+  if (!username || !password) {
+    return res.status(400).json({ ok: false, msg: "Credenciales incompletas" });
+  }
+
+  try {
+    const userRepo = AppDataSource.getRepository("Usuario");
+    const user = await userRepo.findOne({ where: { username } });
+
+    if (!user) {
+      return res.status(404).json({ ok: false, msg: "Usuario no encontrado" });
+    }
+
+    const isPassword = await bcrypt.compare(password, user.password);
+    if (!isPassword) {
+      return res.status(401).json({ ok: false, msg: "Contraseña incorrecta" });
+    }
+
+    const token = await generateJwt({
+      id: user.id,
+      username: user.username,
+      rol: user.rol,
+    });
+
+    res.status(200).json({ ok: true, token, msg: "Login exitoso" });
+  } catch (e) {
+    console.error("Error en login:", e.message);
+    res.status(500).json({ ok: false, msg: "Error en el servidor", error: e.message });
+  }
+};
+
+/**
+ * Obtiene un usuario por ID
+ */
+const getOne = async (req = request, res = response) => {
+  const { id } = req.params;
+
+  if (!id) {
+    return res.status(400).json({ ok: false, msg: "ID no proporcionado" });
+  }
+
+  try {
+    const userRepo = AppDataSource.getRepository("Usuario");
+    const user = await userRepo.findOne({ where: { id: parseInt(id) } });
+
+    if (!user) {
+      return res.status(404).json({ ok: false, msg: "Usuario no encontrado" });
+    }
+
+    res.status(200).json({ ok: true, msg: "Usuario obtenido", usuario: user });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ ok: false, msg: "Error en el servidor" });
+  }
+};
+
+module.exports = { register, login, getOne };
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+    
+    
+</div>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 4.0.4</a> on Wed Sep 10 2025 21:41:27 GMT-0300 (hora estándar de Argentina) using the <a href="https://github.com/clenemt/docdash">docdash</a> theme.
+</footer>
+
+<script>prettyPrint();</script>
+<script src="scripts/polyfill.js"></script>
+<script src="scripts/linenumber.js"></script>
+
+
+
+</body>
+</html>

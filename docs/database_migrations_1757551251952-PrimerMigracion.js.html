@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    
+    <meta charset="utf-8">
+    <title>database/migrations/1757551251952-PrimerMigracion.js - Documentation</title>
+    
+    
+    <script src="scripts/prettify/prettify.js"></script>
+    <script src="scripts/prettify/lang-css.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc.css">
+    <script src="scripts/nav.js" defer></script>
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+
+<input type="checkbox" id="nav-trigger" class="nav-trigger" />
+<label for="nav-trigger" class="navicon-button x">
+  <div class="navicon"></div>
+</label>
+
+<label for="nav-trigger" class="overlay"></label>
+
+<nav >
+    
+    
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="module.exports.html">exports</a></li></ul><h3>Modules</h3><ul><li><a href="module-app.html">app</a></li><li><a href="module-config.html">config</a></li><li><a href="module-controller_user-controller.html">controller/user-controller</a><ul class='methods'><li data-type='method'><a href="module-controller_user-controller.html#~getOne">getOne</a></li><li data-type='method'><a href="module-controller_user-controller.html#~login">login</a></li><li data-type='method'><a href="module-controller_user-controller.html#~register">register</a></li></ul></li><li><a href="module-file-controller.html">file-controller</a><ul class='methods'><li data-type='method'><a href="module-file-controller.html#~postFile">postFile</a></li><li data-type='method'><a href="module-file-controller.html#~uploadFiles">uploadFiles</a></li></ul></li><li><a href="module-helpers_uploader.html">helpers/uploader</a><ul class='methods'><li data-type='method'><a href="module-helpers_uploader.html#~uploadFiles">uploadFiles</a></li></ul></li><li><a href="module-middlewares_jwt.html">middlewares/jwt</a><ul class='methods'><li data-type='method'><a href="module-middlewares_jwt.html#~authenticateJWT">authenticateJWT</a></li><li data-type='method'><a href="module-middlewares_jwt.html#~generateJwt">generateJwt</a></li></ul></li><li><a href="module-middlewares_user-roles.html">middlewares/user-roles</a><ul class='methods'><li data-type='method'><a href="module-middlewares_user-roles.html#~verifyRole">verifyRole</a></li></ul></li><li><a href="module-post-controller.html">post-controller</a><ul class='methods'><li data-type='method'><a href="module-post-controller.html#~approvePost">approvePost</a></li><li data-type='method'><a href="module-post-controller.html#~createPost">createPost</a></li><li data-type='method'><a href="module-post-controller.html#~deletePost">deletePost</a></li><li data-type='method'><a href="module-post-controller.html#~getPosts">getPosts</a></li><li data-type='method'><a href="module-post-controller.html#~updatePost">updatePost</a></li></ul></li><li><a href="module-routes_files.html">routes/files</a></li><li><a href="module-routes_posts.html">routes/posts</a></li><li><a href="module-routes_users.html">routes/users</a></li></ul><h3>Global</h3><ul><li><a href="global.html#main">main</a></li></ul>
+    
+</nav>
+
+<div id="main">
+    
+    <h1 class="page-title">database/migrations/1757551251952-PrimerMigracion.js</h1>
+    
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * @typedef {import('typeorm').MigrationInterface} MigrationInterface
+ */
+
+/**
+ * @class
+ * @implements {MigrationInterface}
+ */
+module.exports = class PrimerMigracion1757551251952 {
+    name = 'PrimerMigracion1757551251952'
+
+    async up(queryRunner) {
+        await queryRunner.query(`CREATE TABLE \`Usuario\` (\`id\` int NOT NULL AUTO_INCREMENT, \`username\` varchar(50) NOT NULL, \`password\` varchar(255) NOT NULL, \`email\` varchar(100) NOT NULL, \`celular\` varchar(20) NOT NULL, \`rol\` enum ('usuario', 'propietario', 'admin') NOT NULL, \`created_at\` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), \`updated_at\` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6), UNIQUE INDEX \`IDX_fc2564b581e02a535b31470a00\` (\`username\`), UNIQUE INDEX \`IDX_c2591f33cb2c9e689e241dda91\` (\`email\`), PRIMARY KEY (\`id\`)) ENGINE=InnoDB`);
+        await queryRunner.query(`CREATE TABLE \`Publicacion\` (\`id\` int NOT NULL AUTO_INCREMENT, \`titulo\` varchar(255) NOT NULL, \`descripcion\` text NOT NULL, \`precio\` decimal(10,2) NOT NULL, \`ubicacion\` varchar(255) NOT NULL, \`tipo\` enum ('venta', 'alquiler', 'intercambio', 'otro') NOT NULL, \`imagenes\` json NOT NULL, \`estado\` enum ('pendiente', 'aprobado', 'eliminado') NOT NULL DEFAULT 'pendiente', \`creado_en\` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), \`actualizado_en\` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6), \`usuario_id\` int NULL, PRIMARY KEY (\`id\`)) ENGINE=InnoDB`);
+        await queryRunner.query(`CREATE TABLE \`Archivo\` (\`id\` int NOT NULL AUTO_INCREMENT, \`img_id\` varchar(255) NOT NULL, \`nombre_original\` varchar(255) NOT NULL, \`extension\` varchar(10) NOT NULL, \`creado_en\` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), \`usuario_id\` int NULL, UNIQUE INDEX \`IDX_33ab0c126d74ba43451cfe01cf\` (\`img_id\`), PRIMARY KEY (\`id\`)) ENGINE=InnoDB`);
+        await queryRunner.query(`ALTER TABLE \`Publicacion\` ADD CONSTRAINT \`FK_b8786d10b7207ddb871baae4a95\` FOREIGN KEY (\`usuario_id\`) REFERENCES \`Usuario\`(\`id\`) ON DELETE CASCADE ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE \`Archivo\` ADD CONSTRAINT \`FK_48e82380e409d2f1fc4b0212022\` FOREIGN KEY (\`usuario_id\`) REFERENCES \`Usuario\`(\`id\`) ON DELETE SET NULL ON UPDATE NO ACTION`);
+    }
+
+    async down(queryRunner) {
+        await queryRunner.query(`ALTER TABLE \`Archivo\` DROP FOREIGN KEY \`FK_48e82380e409d2f1fc4b0212022\``);
+        await queryRunner.query(`ALTER TABLE \`Publicacion\` DROP FOREIGN KEY \`FK_b8786d10b7207ddb871baae4a95\``);
+        await queryRunner.query(`DROP INDEX \`IDX_33ab0c126d74ba43451cfe01cf\` ON \`Archivo\``);
+        await queryRunner.query(`DROP TABLE \`Archivo\``);
+        await queryRunner.query(`DROP TABLE \`Publicacion\``);
+        await queryRunner.query(`DROP INDEX \`IDX_c2591f33cb2c9e689e241dda91\` ON \`Usuario\``);
+        await queryRunner.query(`DROP INDEX \`IDX_fc2564b581e02a535b31470a00\` ON \`Usuario\``);
+        await queryRunner.query(`DROP TABLE \`Usuario\``);
+    }
+}
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+    
+    
+</div>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 4.0.4</a> on Wed Sep 10 2025 21:41:27 GMT-0300 (hora estándar de Argentina) using the <a href="https://github.com/clenemt/docdash">docdash</a> theme.
+</footer>
+
+<script>prettyPrint();</script>
+<script src="scripts/polyfill.js"></script>
+<script src="scripts/linenumber.js"></script>
+
+
+
+</body>
+</html>

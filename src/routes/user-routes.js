@@ -3,10 +3,10 @@
  * @description Define las rutas para autenticación y gestión de usuarios.
  * Incluye registro, login y consulta de usuario por ID con autenticación JWT.
  */
-const { Router } = require('express');// Router para usar metodos POST-PUT-GET-DELETE-PATCH
-const methods = require('../controllers/user-controller.js'); // Métodos de controlador
-const { authenticateJWT } = require('../middlewares/jwt.js'); // Autenticación
-const { verifyRole } = require('../middlewares/user-roles.js'); // Roles de usuario
+const { Router } = require('express');
+const methods = require('../controllers/user-controller.js'); // nuevo controlador con TypeORM
+const { authenticateJWT } = require('../middlewares/jwt.js');
+const { verifyRole } = require('../middlewares/user-roles.js');
 
 const router = Router();
 

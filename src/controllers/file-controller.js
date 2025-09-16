@@ -1,25 +1,18 @@
 /**
  * @module file-controller
- * @description Controlador para la carga y archivos subidos.
  */
 
 const fs = require('fs');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
+const { AppDataSource } = require('../database/database');
+const Archivo = require('../database/entities/File');
 
 const extensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg'];
 
 /**
- * Sube un archivo al servidor y genera un nombre único.
- *
- * @function
- * @param {Object} file - Archivo recibido desde `req.files`.
- * @param {string} file.name - Nombre original del archivo .
- * @param {Function} file.mv - Función para mover el archivo a un nuevo destino.
- * @returns {Promise<string>} - Una promesa que resuelve con el nuevo nombre del archivo.
- * @throws {Object} - Error con mensaje si la extensión no es válida o si falla al mover.
+ * Sube un archivo al servidor y genera un nombre único
  */
-
 const uploadFiles = (file) => {
     return new Promise((resolve, reject) => {
         const extensionAndName = file.name.split('.');
@@ -32,24 +25,15 @@ const uploadFiles = (file) => {
         const tempName = `${uuidv4()}.${extension}`;
         const uploadPath = path.join(__dirname, '../uploads', tempName);
 
-        file.mv(uploadPath, function (err) {
-            if (err) {
-                return reject(err);
-            }
+        file.mv(uploadPath, (err) => {
+            if (err) return reject(err);
             resolve(tempName);
         });
     });
 };
 
 /**
- * Controlador HTTP que maneja la carga de archivos.
- *
- * @async
- * @function
- * @param {Object} req - Objeto de solicitud HTTP.
- * @param {Object} req.files - Archivos subidos a través de multipart/form-data.
- * @param {Object} res - Objeto de respuesta HTTP.
- * @returns {Promise<Response>} - Devuelve el nombre del archivo subido o un error.
+ * Controlador HTTP para subir archivos
  */
 const postFile = async (req, res) => {
     try {
@@ -61,23 +45,27 @@ const postFile = async (req, res) => {
         const originalName = file.name;
         const extension = originalName.split('.').pop().toLowerCase();
 
-        if(!extensions.includes(extension)) {
+        if (!extensions.includes(extension)) {
             return res.status(400).json({
                 ok: false,
-                msg: `Extensión no permitida. Solo: ${extensions.join(', ' )}`
-            })
+                msg: `Extensión no permitida. Solo: ${extensions.join(', ')}`
+            });
         }
 
         const img_id = await uploadFiles(file);
-        const record = { img_id };
 
-        const connection = await getConnection();
-        await connection.query(
-            "INSERT INTO Archivo (img_id, nombre_original, extension, usuario_id) VALUES (?, ?, ?, ?",
-            [img_id, originalName, extension, req.usuario.id || null]
-        );
+        const archivoRepo = AppDataSource.getRepository(Archivo);
 
-        return res.status(200).json({ ok: true, record, msg: 'Subido correctamente' });
+        const newArchivo = archivoRepo.create({
+            img_id,
+            nombre_original: originalName,
+            extension,
+            usuario: req.usuario ? { id: req.usuario.id } : null, // relación ManyToOne opcional
+        });
+
+        const savedArchivo = await archivoRepo.save(newArchivo);
+
+        return res.status(200).json({ ok: true, record: savedArchivo, msg: 'Subido correctamente' });
 
     } catch (err) {
         console.error(err);
