@@ -5,7 +5,7 @@
  */
 
 const { Router } = require('express');
-const methods = require('../controllers/file-controller.js'); // nuevo controlador con TypeORM
+const { postFile } = require('../controllers/file-controller.js');
 const { authenticateJWT } = require('../middlewares/jwt.js');
 
 const router = Router();
@@ -17,7 +17,8 @@ const router = Router();
  * @controller postFile - Método del controlador que maneja la lógica de guardado del archivo.
  */
 
-router.post("/upload", authenticateJWT, methods.postFile);
+router.post('/upload', authenticateJWT, postFile);
+
 
 
 module.exports = router;

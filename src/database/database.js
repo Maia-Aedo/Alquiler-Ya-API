@@ -2,7 +2,9 @@ require('dotenv').config();
 const { DataSource } = require("typeorm");
 
 const AppDataSource = new DataSource({
-    type: "mysql",
+    type: "mysql", // sigue siendo mysql
+    connectorPackage: "mysql2",
+ // ahora usa mysql2
     host: process.env.MYSQL_HOST,
     port: parseInt(process.env.MYSQL_PORT) || 3306,
     username: process.env.MYSQL_USER,
@@ -15,3 +17,4 @@ const AppDataSource = new DataSource({
 });
 
 module.exports = { AppDataSource };
+

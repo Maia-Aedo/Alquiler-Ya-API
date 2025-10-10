@@ -24,7 +24,9 @@ const main = async () => {
             console.log(`🚀 Servidor corriendo en puerto ${app.get("port")}`);
         });
     } catch (err) {
-        console.error("❌ Error al iniciar el servidor:", err.message);
+        // console.error("❌ Error al iniciar el servidor:", err.message);
+        console.error("❌ Error al iniciar el servidor:", err);
+
     }
 };
 

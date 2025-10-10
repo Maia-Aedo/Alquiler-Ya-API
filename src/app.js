@@ -14,17 +14,18 @@
 
 const express = require('express');
 const morgan = require('morgan');
-var cors = require('cors');
+const cors = require('cors');
+const fileUpload = require('express-fileupload');
 
 // Express
 const app = express();
 
 // ! Rutas
 const users = require('./routes/user-routes.js');
-const files = require('./routes/file-routes.js')
-const posts = require('./routes/posts-routes.js')
+const files = require('./routes/file-routes.js');
+const posts = require('./routes/posts-routes.js');
 
-const fileUpload = require('express-fileupload');
+
 
 // Middlewares
 app.use(morgan('dev'));
@@ -55,6 +56,10 @@ app.use(fileUpload({
 app.use('/api/users', users);
 app.use('/api/files', files);
 app.use('/api/posts', posts);
+
+// Hace pública la carpeta /uploads para acceder a las imágenes desde el navegador
+app.use('/uploads', express.static('uploads'));
+
 
 // Eporta la aplicación para userla en index.
 module.exports = app;

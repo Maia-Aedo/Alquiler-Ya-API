@@ -26,6 +26,7 @@ module.exports = new EntitySchema({
         celular: {
             type: "varchar",
             length: 20,
+            nullable: true
         },
         rol: {
             type: "enum",
