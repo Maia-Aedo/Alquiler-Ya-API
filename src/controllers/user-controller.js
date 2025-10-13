@@ -15,7 +15,7 @@ const Usuario = require("../database/entities/User");
  */
 const register = async (req = request, res = response) => {
   console.log('Datos recibidos:', req.body);
-  const { username, password, email, rol } = req.body;
+  const { username, password, email, rol, celular } = req.body;
 
   if (!username || !password || !email || !rol) {
     return res.status(400).json({ ok: false, msg: "Todos los campos son obligatorios" });
@@ -37,6 +37,7 @@ const register = async (req = request, res = response) => {
       password: hashedPassword,
       email,
       rol,
+      celular
     });
 
     const savedUser = await userRepo.save(newUser);
